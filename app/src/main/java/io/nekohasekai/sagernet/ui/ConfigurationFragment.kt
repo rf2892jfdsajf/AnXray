@@ -148,7 +148,9 @@ class ConfigurationFragment @JvmOverloads constructor(
                 override fun onPageScrolled(
                     position: Int, positionOffset: Float, positionOffsetPixels: Int
                 ) {
-                    DataStore.selectedGroup = adapter.groupList[position].id
+                    if (adapter.groupList.size > position) {
+                        DataStore.selectedGroup = adapter.groupList[position].id
+                    }
                 }
             })
         }
@@ -228,7 +230,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             ProfileManager.createProfile(targetId, proxy)
         }
         onMainDispatcher {
-            if (selectedGroup.id != targetId) {
+            if (adapter.groupList.isEmpty() || selectedGroup.id != targetId) {
                 if (targetIndex != -1) {
                     tabLayout.getTabAt(targetIndex)?.select()
                 } else {
