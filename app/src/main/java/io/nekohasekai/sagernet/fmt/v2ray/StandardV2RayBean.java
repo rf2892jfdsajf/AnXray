@@ -261,6 +261,11 @@ public abstract class StandardV2RayBean extends AbstractBean {
                 break;
             }
         }
+
+        if (this instanceof VMessBean) {
+            output.writeBoolean(((VMessBean) this).experimentalAuthenticatedLength);
+            output.writeBoolean(((VMessBean) this).experimentalNoTerminationSignal);
+        }
     }
 
     @Override
@@ -321,6 +326,11 @@ public abstract class StandardV2RayBean extends AbstractBean {
                 if (version >= 4) certificates = input.readString();
                 if (version >= 3) allowInsecure = input.readBoolean();
             }
+        }
+
+        if (this instanceof VMessBean && version >= 4) {
+            ((VMessBean) this).experimentalAuthenticatedLength = input.readBoolean();
+            ((VMessBean) this).experimentalNoTerminationSignal = input.readBoolean();
         }
     }
 
