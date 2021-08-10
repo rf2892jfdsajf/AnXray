@@ -117,10 +117,11 @@ abstract class StandardV2RaySettingsActivity : ProfileSettingsActivity<StandardV
     lateinit var quicSecurity: SimpleMenuPreference
     lateinit var security: SimpleMenuPreference
     lateinit var multiMode: SwitchPreference
+    lateinit var xtlsFlow: SimpleMenuPreference
 
     lateinit var securityCategory: PreferenceCategory
     lateinit var wsCategory: PreferenceCategory
-    lateinit var xtlsFlow: SimpleMenuPreference
+    lateinit var vmessExperimentsCategory: PreferenceCategory
 
     override fun PreferenceFragmentCompat.createPreferences(
         savedInstanceState: Bundle?,
@@ -183,6 +184,9 @@ abstract class StandardV2RaySettingsActivity : ProfileSettingsActivity<StandardV
             updateTle(newValue as String)
             true
         }
+
+        vmessExperimentsCategory = findPreference(Key.SERVER_VMESS_EXPERIMENTS_CATEGORY)!!
+        vmessExperimentsCategory.isVisible = false
     }
 
     val tcpHeadersValue = app.resources.getStringArray(R.array.tcp_headers_value)

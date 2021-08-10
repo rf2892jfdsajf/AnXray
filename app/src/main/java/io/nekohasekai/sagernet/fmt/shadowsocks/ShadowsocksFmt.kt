@@ -182,7 +182,7 @@ fun ShadowsocksBean.toUri(): String {
         builder.encodedFragment(name.urlSafe())
     }
 
-    return builder.toLink("ss")
+    return builder.toLink("ss").replace("$serverPort/", "$serverPort")
 
 }
 

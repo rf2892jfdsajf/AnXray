@@ -208,6 +208,9 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverAllowInsecure by profileCacheStore.boolean(Key.SERVER_ALLOW_INSECURE)
     var serverMultiMode by profileCacheStore.boolean(Key.SERVER_MULTI_MODE)
 
+    var serverVMessExperimentalAuthenticatedLength by profileCacheStore.boolean(Key.SERVER_VMESS_EXPERIMENTAL_AUTHENTICATED_LENGTH)
+    var serverVMessExperimentalNoTerminationSignal by profileCacheStore.boolean(Key.SERVER_VMESS_EXPERIMENTAL_NO_TERMINATION_SIGNAL)
+
     var serverAuthType by profileCacheStore.stringToInt(Key.SERVER_AUTH_TYPE)
     var serverUploadSpeed by profileCacheStore.stringToInt(Key.SERVER_UPLOAD_SPEED)
     var serverDownloadSpeed by profileCacheStore.stringToInt(Key.SERVER_DOWNLOAD_SPEED)

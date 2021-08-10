@@ -618,7 +618,7 @@
     </string-array>
 
     <string-array name="trojan_provider">
-        <item>V2Ray</item>
+        <item>Xray</item>
         <item>Trojan-Go</item>
     </string-array>
 
@@ -628,13 +628,13 @@
     </string-array>
 
     <string-array name="trojan_provider_experimental">
-        <item>V2Ray</item>
+        <item>Xray</item>
         <item>Trojan</item>
         <item>Trojan-Go</item>
     </string-array>
 
     <string-array name="ss_aead_provider">
-        <item>V2Ray</item>
+        <item>Xray</item>
         <item>shadowsocks-rust</item>
     </string-array>
 
