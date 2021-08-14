@@ -21,36 +21,26 @@
 
 package io.nekohasekai.sagernet.tun
 
-import android.system.ErrnoException
 import io.nekohasekai.sagernet.PacketStrategy
 import io.nekohasekai.sagernet.bg.VpnService
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.tun.ip.*
+import io.nekohasekai.sagernet.utils.unix.FileDescriptorCompact
 import io.netty.buffer.ByteBuf
-import io.netty.channel.epoll.EpollDatagramChannel
-import io.netty.channel.epoll.EpollEventLoopGroup
-import io.netty.channel.epoll.EpollServerSocketChannel
-import io.netty.channel.epoll.EpollSocketChannel
-import io.netty.channel.unix.FileDescriptor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.io.IOException
+import java.nio.channels.ClosedChannelException
 import kotlin.random.Random
 
 class DirectTunThread(val service: VpnService) : Thread("TUN Thread") {
-
-    companion object {
-        init {
-            System.loadLibrary("netty_transport_native_epoll")
-        }
-    }
 
     private var fd = 0
 
     @Volatile
     var running = true
-    lateinit var descriptor: FileDescriptor
+    lateinit var descriptor: FileDescriptorCompact
     val closed get() = service.data.proxy?.closed == true
 
     override fun interrupt() {
@@ -61,17 +51,13 @@ class DirectTunThread(val service: VpnService) : Thread("TUN Thread") {
 
     val socksPort = DataStore.socksPort
     val dnsPort = DataStore.localDNSPort
-    val multiThreadForward = DataStore.multiThreadForward
+    val multiThreadForward = true
     val uidDumper = UidDumper(multiThreadForward)
     val uidMap = service.data.proxy?.config?.uidMap ?: emptyMap()
     val enableLog = DataStore.enableLog
     val dumpUid = enableLog || uidMap.isNotEmpty()
 
-    val eventLoop = EpollEventLoopGroup()
-    val serverSocketChannelClazz = EpollServerSocketChannel::class.java
-    val socketChannelClazz = EpollSocketChannel::class.java
-    val datagramChannelClazz = EpollDatagramChannel::class.java
-
+    val eventLoop = service.data.proxy!!.eventLoopGroup
     val tcpForwarder = DirectTcpForwarder(this)
     val udpForwarder = DirectUdpForwarder(this)
 
@@ -80,7 +66,7 @@ class DirectTunThread(val service: VpnService) : Thread("TUN Thread") {
     }
 
     override fun run() {
-        descriptor = FileDescriptor(service.conn.fd)
+        descriptor = FileDescriptorCompact(service.conn)
         tcpForwarder.start()
 
         runBlocking {
@@ -102,14 +88,11 @@ class DirectTunThread(val service: VpnService) : Thread("TUN Thread") {
                 val length = descriptor.read(bufferNio, 0, VpnService.VPN_MTU)
                 if (length < 20) continue
                 processPacket(buffer, length)
-            } catch (e: IOException) {
-                running = false
-                interrupt()
-                break
             } catch (e: Throwable) {
                 running = false
-                Logs.w(e)
                 interrupt()
+                if (e is IOException || e is ClosedChannelException) break
+                Logs.w(e)
                 break
             }
         } while (running)
@@ -129,72 +112,53 @@ class DirectTunThread(val service: VpnService) : Thread("TUN Thread") {
                     try {
                         processPacket(buffer, length)
                         buffer.release()
-                    } catch (e: IOException) {
-                        running = false
-                        interrupt()
                     } catch (e: Throwable) {
                         running = false
-                        Logs.w(e)
                         interrupt()
+                        if (e is IOException || e is ClosedChannelException) return@runOnDefaultDispatcher
+                        Logs.w(e)
                     }
                 }
-            } catch (e: IOException) {
-                running = false
-                interrupt()
-                break
             } catch (e: Throwable) {
                 running = false
-                Logs.w(e)
                 interrupt()
+                if (e is IOException || e is ClosedChannelException) break
+                Logs.w(e)
                 break
             }
         } while (running)
     }
 
     suspend fun processPacket(buffer: ByteBuf, length: Int) {
-        try {
-
-            val ipHeader = when (val ipVersion = buffer.getUnsignedByte(0).toInt() ushr 4) {
-                4 -> DirectIPv4Header(buffer, length)
-                6 -> DirectIPv6Header(buffer, length)
-                else -> {
-                    processOther(buffer, length)
-                    return
-                }
+        val ipHeader = when (val ipVersion = buffer.getUnsignedByte(0).toInt() ushr 4) {
+            4 -> DirectIPv4Header(buffer, length)
+            6 -> DirectIPv6Header(buffer, length)
+            else -> {
+                processOther(buffer, length)
+                return
             }
+        }
 
-            when (val protocol = ipHeader.protocol) {
-                IPPROTO_TCP -> {
-                    tcpForwarder.processTcp(buffer, ipHeader)
-                }
-                IPPROTO_UDP -> {
-                    udpForwarder.processUdp(buffer, ipHeader)
-                }
-                IPPROTO_ICMP -> {
-                    processICMP(buffer, ipHeader)
-                }
-                IPPROTO_ICMPv6 -> {
-                    processICMPv6(buffer, ipHeader)
-                }
-                else -> {
-                    processOther(buffer, length)
-                }
+        when (val protocol = ipHeader.protocol) {
+            IPPROTO_TCP -> {
+                tcpForwarder.processTcp(buffer, ipHeader)
             }
-        } catch (e: SecurityException) {
-            interrupt()
-            running = false
-            return
-        } catch (e: InterruptedException) {
-            interrupt()
-            running = false
-            return
-        } catch (e: ErrnoException) {
-            Logs.w(e)
-            interrupt()
-            running = false
-            return
-        } catch (e: Throwable) {
-            Logs.w(e)
+            IPPROTO_UDP -> {
+                udpForwarder.processUdp(buffer, ipHeader)
+            }
+            IPPROTO_ICMP -> {
+                processICMP(buffer, ipHeader)
+            }
+            IPPROTO_ICMPv6 -> {
+                processICMPv6(buffer, ipHeader)
+            }
+            else -> {
+                processOther(buffer, length)
+            }
+        }
+
+        if (buffer.refCnt() > 2) {
+            Logs.d("Leaked ${buffer.refCnt()}: $ipHeader (${ipHeader.protocol})")
         }
     }
 

@@ -19,38 +19,59 @@
  *                                                                            *
  ******************************************************************************/
 
-package io.nekohasekai.sagernet.bg
+package cn.hutool.cache.impl;
 
-import io.nekohasekai.sagernet.database.ProxyEntity
-import io.nekohasekai.sagernet.fmt.buildCustomConfig
-import io.nekohasekai.sagernet.ktx.Logs
-import io.netty.channel.EventLoopGroup
-import libv2ray.Libv2ray
-import libv2ray.V2RayVPNServiceSupportsSet
+import android.os.Build;
 
-class ExternalInstance(
-    val supportSet: V2RayVPNServiceSupportsSet,
-    profile: ProxyEntity,
-    val port: Int,
-    override val eventLoopGroup: EventLoopGroup
-) : V2RayInstance(profile) {
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-    override fun init() {
-        super.init()
+import cn.hutool.cache.Cache;
 
-        Logs.d(config.config)
-        pluginConfigs.forEach { (_, plugin) ->
-            val (_, content) = plugin
-            Logs.d(content)
+public class LFUCacheCompact<K, V> {
+
+    protected int capacity;
+    protected long timeout;
+
+    public LFUCacheCompact(int capacity, long timeout) {
+        if (Integer.MAX_VALUE == capacity) {
+            capacity -= 1;
         }
+
+        this.capacity = capacity;
+        this.timeout = timeout;
     }
 
-    override fun initInstance() {
-        v2rayPoint = Libv2ray.newV2RayPoint(supportSet, false)
+    protected void onRemove(K key, V cachedObject) {
     }
 
-    override fun buildConfig() {
-        config = buildCustomConfig(profile, port)
+    public Cache<K, V> build(boolean async) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            return new LFUCache<K, V>(capacity, timeout) {
+                {
+                    if (async) {
+                        cacheMap = new ConcurrentHashMap<>();
+                    }
+                }
+
+                @Override
+                protected void onRemove(K key, V cachedObject) {
+                    LFUCacheCompact.this.onRemove(key, cachedObject);
+                }
+            };
+        } else {
+            return new LFUCacheWithoutLock<K, V>(capacity, timeout) {
+                @Override
+                protected Map<K, CacheObj<K, V>> createCacheMap() {
+                    return new ConcurrentHashMap<>();
+                }
+
+                @Override
+                protected void onRemove(K key, V cachedObject) {
+                    LFUCacheCompact.this.onRemove(key, cachedObject);
+                }
+            };
+        }
     }
 
 }

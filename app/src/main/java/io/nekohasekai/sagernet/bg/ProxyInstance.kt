@@ -34,6 +34,7 @@ import com.xray.app.stats.command.GetStatsRequest
 import com.xray.app.stats.command.StatsServiceGrpcKt
 import io.grpc.ManagedChannel
 import io.grpc.StatusException
+import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
@@ -50,6 +51,7 @@ class ProxyInstance(profile: ProxyEntity, val service: BaseService.Interface) : 
     profile
 ) {
 
+    override val eventLoopGroup by lazy { SagerNet.eventLoopGroup() }
     lateinit var managedChannel: ManagedChannel
     val statsService by lazy { StatsServiceGrpcKt.StatsServiceCoroutineStub(managedChannel) }
 
@@ -124,6 +126,8 @@ class ProxyInstance(profile: ProxyEntity, val service: BaseService.Interface) : 
         if (::managedChannel.isInitialized) {
             managedChannel.shutdownNow()
         }
+
+        eventLoopGroup.shutdownGracefully()
     }
 
     // ------------- stats -------------

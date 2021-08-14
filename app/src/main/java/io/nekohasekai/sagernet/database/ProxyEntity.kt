@@ -194,7 +194,7 @@ data class ProxyEntity(
     }
 
     fun displayType() = when (type) {
-        TYPE_SOCKS -> "SOCKS5"
+        TYPE_SOCKS -> socksBean!!.protocolName()
         TYPE_HTTP -> if (httpBean!!.tls) "HTTPS" else "HTTP"
         TYPE_SS -> "Shadowsocks"
         TYPE_SSR -> "ShadowsocksR"
@@ -324,7 +324,7 @@ data class ProxyEntity(
 
     fun needExternal(): Boolean {
         return when (type) {
-            TYPE_SOCKS -> false
+            TYPE_SOCKS -> socksBean!!.protocol != SOCKSBean.PROTOCOL_SOCKS5
             TYPE_HTTP -> false
             TYPE_SS -> useExternalShadowsocks()
             TYPE_VMESS -> false

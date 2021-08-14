@@ -19,38 +19,46 @@
  *                                                                            *
  ******************************************************************************/
 
-package io.nekohasekai.sagernet.bg
+package io.nekohasekai.sagernet.utils.unix
 
-import io.nekohasekai.sagernet.database.ProxyEntity
-import io.nekohasekai.sagernet.fmt.buildCustomConfig
-import io.nekohasekai.sagernet.ktx.Logs
-import io.netty.channel.EventLoopGroup
-import libv2ray.Libv2ray
-import libv2ray.V2RayVPNServiceSupportsSet
+import android.os.ParcelFileDescriptor
+import android.system.Os
+import io.netty.channel.epoll.Epoll
+import io.netty.channel.unix.FileDescriptor
+import java.nio.ByteBuffer
+import java.io.FileDescriptor as FD
 
-class ExternalInstance(
-    val supportSet: V2RayVPNServiceSupportsSet,
-    profile: ProxyEntity,
-    val port: Int,
-    override val eventLoopGroup: EventLoopGroup
-) : V2RayInstance(profile) {
+class FileDescriptorCompact private constructor(impl: AbstractFileDescriptor) : AbstractFileDescriptor by impl {
 
-    override fun init() {
-        super.init()
+    constructor(pfd: ParcelFileDescriptor) : this(
+        if (Epoll.isAvailable()) NettyImplementation(pfd.fd) else OsImplementation(
+            pfd.fileDescriptor
+        )
+    )
 
-        Logs.d(config.config)
-        pluginConfigs.forEach { (_, plugin) ->
-            val (_, content) = plugin
-            Logs.d(content)
+    private class NettyImplementation(fd: Int) : AbstractFileDescriptor {
+        private val fileDescriptor = FileDescriptor(fd)
+
+        override fun read(buffer: ByteBuffer, pos: Int, limit: Int): Int {
+            return fileDescriptor.read(buffer, pos, limit)
+        }
+
+        override fun write(buffer: ByteBuffer, pos: Int, limit: Int): Int {
+            return fileDescriptor.write(buffer, pos, limit)
         }
     }
 
-    override fun initInstance() {
-        v2rayPoint = Libv2ray.newV2RayPoint(supportSet, false)
-    }
+    private class OsImplementation(private val fileDescriptor: FD) : AbstractFileDescriptor {
 
-    override fun buildConfig() {
-        config = buildCustomConfig(profile, port)
+        override fun read(buffer: ByteBuffer, pos: Int, limit: Int): Int {
+            buffer.position(pos).limit(limit)
+            return Os.read(fileDescriptor, buffer)
+        }
+
+        override fun write(buffer: ByteBuffer, pos: Int, limit: Int): Int {
+            buffer.position(pos).limit(limit)
+            return Os.write(fileDescriptor, buffer)
+        }
     }
 
 }
