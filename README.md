@@ -36,6 +36,7 @@ The application is designed to be used whenever possible.
 * VMess
 * VLESS with XTLS support
 * Trojan with XTLS support
+* Snell
 * Trojan-Go ( trojan-go-plugin )
 * NaïveProxy ( naive-plugin )
 * relaybaton ( relaybaton-plugin )

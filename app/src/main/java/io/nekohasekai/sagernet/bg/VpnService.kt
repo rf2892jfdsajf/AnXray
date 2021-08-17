@@ -45,6 +45,8 @@ import io.nekohasekai.sagernet.utils.Subnet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import libcore.Tun2socks
+import libcore.Tun2socksG
 import java.io.File
 import java.io.FileDescriptor
 import java.io.IOException
@@ -76,6 +78,8 @@ class VpnService : BaseVpnService(),
 
     lateinit var conn: ParcelFileDescriptor
     lateinit var tun: DirectTunThread
+    lateinit var tun2socks: Tun2socks
+    lateinit var tun2socksG: Tun2socksG
 
     private var active = false
     private var metered = false
@@ -105,8 +109,9 @@ class VpnService : BaseVpnService(),
         scope.launch { DefaultNetworkListener.stop(this) }
         if (::conn.isInitialized) conn.close()
         if (::tun.isInitialized) tun.interrupt()
+        if (::tun2socks.isInitialized) tun2socks.close()
+        if (::tun2socksG.isInitialized) tun2socksG.close()
     }
-
 
     override fun onBind(intent: Intent) = when (intent.action) {
         SERVICE_INTERFACE -> super<BaseVpnService>.onBind(intent)
@@ -148,7 +153,8 @@ class VpnService : BaseVpnService(),
             .setMtu(VPN_MTU)
         val useFakeDns = DataStore.enableFakeDns
         val ipv6Mode = DataStore.ipv6Mode
-        val useNativeForwarding = DataStore.vpnMode == VpnMode.EXPERIMENTAL_FORWARDING
+        val vpnMode = DataStore.vpnMode
+        val useNativeForwarding = vpnMode == VpnMode.EXPERIMENTAL_FORWARDING
 
         builder.addAddress(PRIVATE_VLAN4_CLIENT, 30)
         if (ipv6Mode != IPv6Mode.ONLY) {
@@ -247,35 +253,65 @@ class VpnService : BaseVpnService(),
         if (useNativeForwarding) builder.setBlocking(true)
         conn = builder.establish() ?: throw NullConnectionException()
 
-        if (!useNativeForwarding) {
-            val cmd = arrayListOf(
-                File(applicationInfo.nativeLibraryDir, Executable.TUN2SOCKS).canonicalPath,
-                "--netif-ipaddr",
-                PRIVATE_VLAN4_ROUTER,
-                "--socks-server-addr",
-                "$LOCALHOST:${DataStore.socksPort}",
-                "--tunmtu",
-                VPN_MTU.toString(),
-                "--sock-path",
-                File(SagerNet.deviceStorage.noBackupFilesDir, "sock_path").canonicalPath,
-                "--loglevel",
-                "warning"
-            )
-            cmd += "--dnsgw"
-            cmd += "$LOCALHOST:${DataStore.localDNSPort}"
-            if (ipv6Mode != IPv6Mode.DISABLE) {
-                cmd += "--netif-ip6addr"
-                cmd += PRIVATE_VLAN6_ROUTER
-            }
-            cmd += "--enable-udprelay"
-            data.proxy!!.processes.start(cmd, onRestartCallback = {
-                try {
-                    sendFd(conn.fileDescriptor)
-                } catch (e: ErrnoException) {
-                    stopRunner(false, e.message)
+        if (!useNativeForwarding) when (DataStore.tunImplementation) {
+            TunImplementation.BADVPN -> {
+                val cmd = arrayListOf(
+                    File(
+                        applicationInfo.nativeLibraryDir, Executable.TUN2SOCKS
+                    ).canonicalPath,
+                    "--netif-ipaddr",
+                    PRIVATE_VLAN4_ROUTER,
+                    "--socks-server-addr",
+                    "$LOCALHOST:${DataStore.socksPort}",
+                    "--tunmtu",
+                    VPN_MTU.toString(),
+                    "--sock-path",
+                    File(
+                        SagerNet.deviceStorage.noBackupFilesDir, "sock_path"
+                    ).canonicalPath,
+                    "--loglevel",
+                    "warning"
+                )
+                cmd += "--dnsgw"
+                cmd += "$LOCALHOST:${DataStore.localDNSPort}"
+                if (ipv6Mode != IPv6Mode.DISABLE) {
+                    cmd += "--netif-ip6addr"
+                    cmd += PRIVATE_VLAN6_ROUTER
                 }
-            })
-            sendFd(conn.fileDescriptor)
+                cmd += "--enable-udprelay"
+                data.proxy!!.processes.start(cmd, onRestartCallback = {
+                    try {
+                        sendFd(conn.fileDescriptor)
+                    } catch (e: ErrnoException) {
+                        stopRunner(false, e.message)
+                    }
+                })
+                sendFd(conn.fileDescriptor)
+            }
+            TunImplementation.LWIP -> {
+                tun2socks = Tun2socks(
+                    conn.fd.toLong(),
+                    VPN_MTU.toLong(),
+                    DataStore.socksPort.toLong(),
+                    PRIVATE_VLAN4_ROUTER,
+                    DataStore.localDNSPort.toLong(),
+                    true,
+                    DataStore.enableLog
+                )
+                tun2socks.start()
+            }
+            TunImplementation.GVISOR -> {
+                tun2socksG = Tun2socksG(
+                    conn.fd.toLong(),
+                    VPN_MTU.toLong(),
+                    DataStore.socksPort.toLong(),
+                    PRIVATE_VLAN4_ROUTER,
+                    DataStore.localDNSPort.toLong(),
+                    true,
+                    DataStore.enableLog
+                )
+                tun2socksG.start()
+            }
         } else {
             tun = DirectTunThread(this)
             tun.start()

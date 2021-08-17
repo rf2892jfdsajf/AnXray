@@ -13,21 +13,21 @@ on:
       - dev
 
 jobs:
-  v2ray:
-    name: Native Build (Xray)
+  libcore:
+    name: Native Build (LibCore)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Fetch Status
-        run: git submodule status library/xray > xray_status
-      - name: Xray Cache
+        run: git submodule status library/libcore > libcore_status
+      - name: LibCore Cache
         id: cache
         uses: actions/cache@v2
         with:
           path: |
-            app/libs/libxray.aar
-          key: ${{ hashFiles('bin/lib/xray/*', 'xray_status') }}
+            app/libs/libcore.aar
+          key: ${{ hashFiles('bin/lib/core/*', 'libcore_status') }}
       - name: Install Golang
         uses: actions/setup-go@v2
         if: steps.cache.outputs.cache-hit != 'true'
@@ -35,7 +35,7 @@ jobs:
           go-version: 1.16
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
-        run: ./run lib v2ray
+        run: ./run lib core
   shadowsocks:
     name: Native Build (Shadowsocks)
     runs-on: ubuntu-latest
@@ -67,68 +67,31 @@ jobs:
           echo "ndk.dir=${ANDROID_HOME}/ndk/21.4.7075529" >> local.properties
           ./run init action library
           ./run lib shadowsocks
-  shadowsocksr:
-    name: Native Build (ShadowsocksR)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Fetch Status
-        run: git submodule status 'library/shadowsocksr/*' > shadowsocksr_status
-      - name: ShadowsocksR Cache
-        id: cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            app/libs/shadowsocksr-release.aar
-          key: ${{ hashFiles('shadowsocksr_status') }}
-      - name: Gradle cache
-        uses: actions/cache@v2
-        if: steps.cache.outputs.cache-hit != 'true'
-        with:
-          path: ~/.gradle
-          key: native-${{ hashFiles('**/*.gradle') }}
-      - name: Native Build
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          echo "sdk.dir=${ANDROID_HOME}" > local.properties
-          echo "ndk.dir=${ANDROID_HOME}/ndk/21.4.7075529" >> local.properties
-          ./run init action library
-          ./run lib shadowsocksr
   build:
     name: Gradle Build
     runs-on: ubuntu-latest
     needs:
-      - v2ray
+      - libcore
       - shadowsocks
-      - shadowsocksr
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Fetch Status
         run: |
           git submodule status 'library/shadowsocks/*' > shadowsocks_status
-          git submodule status 'library/shadowsocksr/*' > shadowsocksr_status
-          git submodule status library/xray > xray_status
-      - name: Xray Cache
-        id: cache
+          git submodule status library/libcore > libcore_status
+      - name: LibCore Cache
         uses: actions/cache@v2
         with:
           path: |
-            app/libs/libxray.aar
-          key: ${{ hashFiles('bin/lib/xray/*', 'xray_status') }}
+            app/libs/libcore.aar
+          key: ${{ hashFiles('bin/lib/core/*', 'libcore_status') }}
       - name: Shadowsocks Cache
         uses: actions/cache@v2
         with:
           path: |
             app/libs/shadowsocks-release.aar
           key: ${{ hashFiles('library/shadowsocks/build.gradle.kts', 'shadowsocks_status') }}
-      - name: ShadowsocksR Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            app/libs/shadowsocksr-release.aar
-          key: ${{ hashFiles('shadowsocksr_status') }}
       - name: Gradle cache
         uses: actions/cache@v2
         with:

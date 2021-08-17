@@ -554,21 +554,6 @@
         <item>3</item>
     </string-array>
 
-    <string-array name="utls_entry">
-        <item>DISABLED</item>
-        <item>CHROME</item>
-        <item>FIREFOX</item>
-        <item>SAFARI</item>
-        <item>RANDOMIZED</item>
-    </string-array>
-    <string-array name="utls_value">
-        <item />
-        <item>chrome</item>
-        <item>firefox</item>
-        <item>safari</item>
-        <item>randomized</item>
-    </string-array>
-
     <string-array name="ipv6_mode">
         <item>@string/disable</item>
         <item>@string/enable</item>
@@ -636,6 +621,12 @@
     <string-array name="ss_aead_provider">
         <item>Xray</item>
         <item>shadowsocks-rust</item>
+        <item>Clash</item>
+    </string-array>
+
+    <string-array name="ss_stream_provider">
+        <item>shadowsocks-rust</item>
+        <item>Clash</item>
     </string-array>
 
     <string-array name="group_types">
@@ -659,6 +650,38 @@
         <item>SOCKS4</item>
         <item>SOCKS4A</item>
         <item>SOCKS5</item>
+    </string-array>
+
+    <string-array name="utls_entry">
+        <item>DISABLED</item>
+        <item>CHROME</item>
+        <item>FIREFOX</item>
+        <item>SAFARI</item>
+        <item>RANDOMIZED</item>
+    </string-array>
+
+    <string-array name="utls_value">
+        <item />
+        <item>chrome</item>
+        <item>firefox</item>
+        <item>safari</item>
+        <item>randomized</item>
+    </string-array>
+
+    <string-array name="tun2socks">
+        <item>BADVPN</item>
+        <item>LWIP</item>
+        <item>GVISOR</item>
+    </string-array>
+
+    <string-array name="snell_versions">
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <string-array name="simple_obfs">
+        <item>http</item>
+        <item>tls</item>
     </string-array>
 
 </resources>

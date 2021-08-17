@@ -73,7 +73,6 @@ object Key {
 
     const val CONNECTION_TEST_URL = "connectionTestURL"
 
-    const val XRAY_UTLS_FINGERPRINT = "xrayFingerprint"
     const val ENABLE_MUX = "enableMux"
     const val ENABLE_MUX_FOR_ALL = "enableMuxForAll"
     const val MUX_CONCURRENCY = "muxConcurrency"
@@ -95,6 +94,10 @@ object Key {
 
     const val PROVIDER_TROJAN = "providerTrojan"
     const val PROVIDER_SS_AEAD = "providerShadowsocksAEAD"
+    const val PROVIDER_SS_STREAM = "providerShadowsocksStream"
+
+    const val UTLS_FINGERPRINT = "utlsFingerprint"
+    const val TUN_IMPLEMENTATION = "tunImplementation"
 
     const val PROFILE_DIRTY = "profileDirty"
     const val PROFILE_ID = "profileId"
@@ -195,6 +198,12 @@ object TrojanProvider {
 object ShadowsocksAEADProvider {
     const val V2RAY = 0
     const val SHADOWSOCKS_RUST = 1
+    const val CLASH = 2
+}
+
+object ShadowsocksStreamProvider {
+    const val SHADOWSOCKS_RUST = 0
+    const val CLASH = 1
 }
 
 object IPv6Mode {
@@ -230,6 +239,12 @@ object ExtraType {
     const val NONE = 0
     const val OOCv1 = 1
     const val SIP008 = 2
+}
+
+object TunImplementation {
+    const val BADVPN = 0
+    const val LWIP = 1
+    const val GVISOR = 2
 }
 
 object Action {

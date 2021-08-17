@@ -153,7 +153,6 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         val requireTransproxy = findPreference<SwitchPreference>(Key.REQUIRE_TRANSPROXY)!!
         val transproxyPort = findPreference<EditTextPreference>(Key.TRANSPROXY_PORT)!!
         val transproxyMode = findPreference<SimpleMenuPreference>(Key.TRANSPROXY_MODE)!!
-        val xrayFingerprint = findPreference<SimpleMenuPreference>(Key.XRAY_UTLS_FINGERPRINT)!!
         val enableLog = findPreference<SwitchPreference>(Key.ENABLE_LOG)!!
 
         val apiPort = findPreference<EditTextPreference>(Key.API_PORT)!!
@@ -169,13 +168,14 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
 
         val vpnMode = findPreference<SimpleMenuPreference>(Key.VPN_MODE)!!
+        val tunImplementation = findPreference<SimpleMenuPreference>(Key.TUN_IMPLEMENTATION)!!
         val icmpEchoStrategy = findPreference<SimpleMenuPreference>(Key.ICMP_ECHO_STRATEGY)!!
         val icmpEchoReplyDelay = findPreference<EditTextPreference>(Key.ICMP_ECHO_REPLY_DELAY)!!
         val ipOtherStrategy = findPreference<SimpleMenuPreference>(Key.IP_OTHER_STRATEGY)!!
 
         fun updateVpnMode(newMode: Int) {
             val isForwarding = newMode == VpnMode.EXPERIMENTAL_FORWARDING
-
+            tunImplementation.isVisible = !isForwarding
             icmpEchoStrategy.isVisible = isForwarding
             icmpEchoReplyDelay.isVisible = isForwarding
             if (isForwarding) {
@@ -198,6 +198,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
 
         val providerTrojan = findPreference<SimpleMenuPreference>(Key.PROVIDER_TROJAN)!!
         val providerShadowsocksAEAD = findPreference<SimpleMenuPreference>(Key.PROVIDER_SS_AEAD)!!
+        val providerShadowsocksStream = findPreference<SimpleMenuPreference>(Key.PROVIDER_SS_STREAM)!!
 
         if (!isExpert) {
             providerTrojan.setEntries(R.array.trojan_provider)
@@ -223,6 +224,8 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             if (newValue as Boolean) DataStore.dirty = true
             newValue
         }
+
+        val utlsFingerprint = findPreference<SimpleMenuPreference>(Key.UTLS_FINGERPRINT)!!
 
         serviceMode.onPreferenceChangeListener = reloadListener
         speedInterval.onPreferenceChangeListener = reloadListener
@@ -253,15 +256,17 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         transproxyPort.onPreferenceChangeListener = reloadListener
         transproxyMode.onPreferenceChangeListener = reloadListener
 
-        xrayFingerprint.onPreferenceChangeListener = reloadListener
         enableLog.onPreferenceChangeListener = reloadListener
 
+        tunImplementation.onPreferenceChangeListener = reloadListener
         icmpEchoReplyDelay.onPreferenceChangeListener = reloadListener
         icmpEchoReplyDelay.setOnBindEditTextListener(EditTextPreferenceModifiers.Number)
         ipOtherStrategy.onPreferenceChangeListener = reloadListener
 
         providerTrojan.onPreferenceChangeListener = reloadListener
         providerShadowsocksAEAD.onPreferenceChangeListener = reloadListener
+        providerShadowsocksStream.onPreferenceChangeListener = reloadListener
+        utlsFingerprint.onPreferenceChangeListener = reloadListener
 
     }
 

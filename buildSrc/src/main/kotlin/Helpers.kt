@@ -117,7 +117,7 @@ fun Project.setupCommon() {
             exclude("DebugProbesKt.bin")
             exclude("com/**")
             exclude("org/**")
-            exclude("/inet/**")
+            exclude("**/*.java")
             exclude("**/*.proto")
         }
         packagingOptions {

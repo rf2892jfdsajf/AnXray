@@ -43,6 +43,10 @@ val methodsXray = arrayOf(
     "chacha20-ietf"
 )
 
+val methodsClash = arrayOf(
+    "none", "aes-128-gcm", "aes-256-gcm", "chacha20-ietf-poly1305", "xchacha20-ietf-poly1305"
+)
+
 fun PluginConfiguration.fixInvalidParams() {
 
     if (selected.contains("v2ray") && selected != "v2ray-plugin") {

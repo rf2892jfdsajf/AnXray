@@ -48,11 +48,10 @@ import io.nekohasekai.sagernet.databinding.LayoutAboutBinding
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.plugin.PluginManager
 import io.nekohasekai.sagernet.widget.ListHolderListener
-import libv2ray.Libv2ray
+import libcore.Libcore
 import java.io.File
 import java.io.IOException
 import java.io.PrintWriter
-
 
 class AboutFragment : ToolbarFragment(R.layout.layout_about) {
 
@@ -75,7 +74,8 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
             eTime = time
         }
 
-        parentFragmentManager.beginTransaction().replace(R.id.about_fragment_holder, AboutContent())
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.about_fragment_holder, AboutContent())
             .commitAllowingStateLoss()
 
         runOnDefaultDispatcher {
@@ -94,7 +94,8 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
         ) { (resultCode, _) ->
             if (resultCode == Activity.RESULT_OK) {
                 parentFragmentManager.beginTransaction()
-                    .replace(R.id.about_fragment_holder, AboutContent()).commitAllowingStateLoss()
+                    .replace(R.id.about_fragment_holder, AboutContent())
+                    .commitAllowingStateLoss()
             }
         }
 
@@ -137,7 +138,8 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                 startActivity(
                     Intent.createChooser(
                         Intent(Intent.ACTION_SEND).setType("text/x-log")
-                            .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION).putExtra(
+                            .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            .putExtra(
                                 Intent.EXTRA_STREAM, FileProvider.getUriForFile(
                                     context, app.packageName + ".log", logFile
                                 )
@@ -154,53 +156,61 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                 versionName += "-${BuildConfig.FLAVOR}"
             }
 
-            return MaterialAboutList.Builder().addCard(
-                MaterialAboutCard.Builder().outline(false).addItem(
-                    MaterialAboutActionItem.Builder().icon(R.drawable.ic_baseline_update_24)
-                        .text(R.string.app_version).subText(versionName).setOnClickAction {
+            return MaterialAboutList.Builder()
+                .addCard(MaterialAboutCard.Builder()
+                    .outline(false)
+                    .addItem(MaterialAboutActionItem.Builder()
+                        .icon(R.drawable.ic_baseline_update_24)
+                        .text(R.string.app_version)
+                        .subText(versionName)
+                        .setOnClickAction {
                             requireContext().launchCustomTab(
                                 "https://github.com/XTLS/AnXray/releases"
                             )
-                        }.build()
-                ).addItem(
-                    MaterialAboutActionItem.Builder()
+                        }
+                        .build())
+                    .addItem(MaterialAboutActionItem.Builder()
                         .icon(R.drawable.ic_baseline_airplanemode_active_24)
                         .text(getString(R.string.version_x, "Xray-core"))
-                        .subText(Libv2ray.getVersion()).setOnClickAction {
+                        .subText("v" + Libcore.getV2RayVersion())
+                        .setOnClickAction {
                             requireContext().launchCustomTab(
                                 "https://github.com/XTLS/Xray-core/releases"
                             )
-                        }.build()
-                ).apply {
-                    for (plugin in PluginManager.fetchPlugins()) {
-                        try {
-                            addItem(
-                                MaterialAboutActionItem.Builder()
+                        }
+                        .build())
+                    .apply {
+                        for (plugin in PluginManager.fetchPlugins()) {
+                            try {
+                                addItem(MaterialAboutActionItem.Builder()
                                     .icon(R.drawable.ic_baseline_nfc_24)
                                     .text(getString(R.string.version_x, plugin.id))
-                                    .subText("v" + plugin.versionName).setOnClickAction {
+                                    .subText("v" + plugin.versionName)
+                                    .setOnClickAction {
                                         startActivity(Intent().apply {
                                             action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                                             data = Uri.fromParts(
                                                 "package", plugin.packageName, null
                                             )
                                         })
-                                    }.build()
-                            )
-                        } catch (e: Exception) {
-                            Logs.w(e)
+                                    }
+                                    .build())
+                            } catch (e: Exception) {
+                                Logs.w(e)
+                            }
                         }
                     }
-                }.addItem(
-                    MaterialAboutActionItem.Builder().icon(R.drawable.ic_baseline_bug_report_24)
-                        .text(R.string.logcat).subText(R.string.logcat_summary)
-                        .setOnClickAction { exportLog() }.build()
-                ).apply {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        val pm = app.getSystemService(Context.POWER_SERVICE) as PowerManager
-                        if (!pm.isIgnoringBatteryOptimizations(app.packageName)) {
-                            addItem(
-                                MaterialAboutActionItem.Builder()
+                    .addItem(MaterialAboutActionItem.Builder()
+                        .icon(R.drawable.ic_baseline_bug_report_24)
+                        .text(R.string.logcat)
+                        .subText(R.string.logcat_summary)
+                        .setOnClickAction { exportLog() }
+                        .build())
+                    .apply {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            val pm = app.getSystemService(Context.POWER_SERVICE) as PowerManager
+                            if (!pm.isIgnoringBatteryOptimizations(app.packageName)) {
+                                addItem(MaterialAboutActionItem.Builder()
                                     .icon(R.drawable.ic_baseline_running_with_errors_24)
                                     .text(R.string.ignore_battery_optimizations)
                                     .subText(R.string.ignore_battery_optimizations_sum)
@@ -211,45 +221,55 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                                                 Uri.parse("package:${app.packageName}")
                                             )
                                         )
-                                    }.build()
-                            )
+                                    }
+                                    .build())
+                            }
                         }
-                    }
-                    if (isDefaultFlavor) {
-                        addItem(
-                            MaterialAboutActionItem.Builder()
-                                .icon(R.drawable.ic_baseline_card_giftcard_24).text(R.string.donate)
-                                .subText(R.string.donate_info).setOnClickAction {
+                        if (isDefaultFlavor) {
+                            addItem(MaterialAboutActionItem.Builder()
+                                .icon(R.drawable.ic_baseline_card_giftcard_24)
+                                .text(R.string.donate)
+                                .subText(R.string.donate_info)
+                                .setOnClickAction {
                                     requireContext().launchCustomTab(
                                         "https://opencollective.com/sagernet"
                                     )
-                                }.build()
-                        )
+                                }
+                                .build())
+                        }
                     }
-                }.build()
-            ).addCard(
-                MaterialAboutCard.Builder().outline(false).title(R.string.project).addItem(
-                    MaterialAboutActionItem.Builder().icon(R.drawable.ic_baseline_sanitizer_24)
-                        .text(R.string.github).setOnClickAction {
+                    .build())
+                .addCard(MaterialAboutCard.Builder()
+                    .outline(false)
+                    .title(R.string.project)
+                    .addItem(MaterialAboutActionItem.Builder()
+                        .icon(R.drawable.ic_baseline_sanitizer_24)
+                        .text(R.string.github)
+                        .setOnClickAction {
                             requireContext().launchCustomTab(
                                 "https://github.com/XTLS/AnXray"
 
                             )
-                        }.build()
-                ).addItem(
-                    MaterialAboutActionItem.Builder().icon(R.drawable.ic_qu_shadowsocks_foreground)
-                        .text(R.string.telegram).setOnClickAction {
+                        }
+                        .build())
+                    .addItem(MaterialAboutActionItem.Builder()
+                        .icon(R.drawable.ic_qu_shadowsocks_foreground)
+                        .text(R.string.telegram)
+                        .setOnClickAction {
                             requireContext().launchCustomTab(
                                 "https://t.me/AnXray"
                             )
-                        }.build()
-                ).addItem(
-                    MaterialAboutActionItem.Builder().icon(R.drawable.ic_action_copyright)
-                        .text(R.string.oss_licenses).setOnClickAction {
+                        }
+                        .build())
+                    .addItem(MaterialAboutActionItem.Builder()
+                        .icon(R.drawable.ic_action_copyright)
+                        .text(R.string.oss_licenses)
+                        .setOnClickAction {
                             startActivity(Intent(context, LicenseActivity::class.java))
-                        }.build()
-                ).build()
-            ).build()
+                        }
+                        .build())
+                    .build())
+                .build()
 
         }
 

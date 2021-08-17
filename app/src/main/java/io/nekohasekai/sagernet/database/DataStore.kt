@@ -174,7 +174,6 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var proxyApps by configurationStore.boolean(Key.PROXY_APPS)
     var bypass by configurationStore.boolean(Key.BYPASS_MODE) { true }
     var individual by configurationStore.string(Key.INDIVIDUAL)
-    var xrayFingerprint by configurationStore.string(Key.XRAY_UTLS_FINGERPRINT)
     var enableMux by configurationStore.boolean(Key.ENABLE_MUX)
     var enableMuxForAll by configurationStore.boolean(Key.ENABLE_MUX_FOR_ALL)
     var muxConcurrency by configurationStore.stringToInt(Key.MUX_CONCURRENCY) { 8 }
@@ -197,10 +196,14 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var icmpEchoReplyDelay by configurationStore.stringToLong(Key.ICMP_ECHO_REPLY_DELAY) { 50 }
     var ipOtherStrategy by configurationStore.stringToInt(Key.IP_OTHER_STRATEGY) { PacketStrategy.DIRECT }
 
+    var utlsFingerprint by configurationStore.string(Key.UTLS_FINGERPRINT)
+    var tunImplementation by configurationStore.stringToInt(Key.TUN_IMPLEMENTATION) { TunImplementation.GVISOR }
+
     // protocol
 
     var providerTrojan by configurationStore.stringToInt(Key.PROVIDER_TROJAN)
     var providerShadowsocksAEAD by configurationStore.stringToInt(Key.PROVIDER_SS_AEAD)
+    var providerShadowsocksStream by configurationStore.stringToInt(Key.PROVIDER_SS_STREAM)
 
     // cache
 
@@ -247,7 +250,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverUploadSpeed by profileCacheStore.stringToInt(Key.SERVER_UPLOAD_SPEED)
     var serverDownloadSpeed by profileCacheStore.stringToInt(Key.SERVER_DOWNLOAD_SPEED)
 
-    var serverSocksVersion by profileCacheStore.stringToInt(Key.SERVER_PROTOCOL)
+    var serverProtocolVersion by profileCacheStore.stringToInt(Key.SERVER_PROTOCOL)
 
     var balancerType by profileCacheStore.stringToInt(Key.BALANCER_TYPE)
     var balancerGroup by profileCacheStore.stringToLong(Key.BALANCER_GROUP)

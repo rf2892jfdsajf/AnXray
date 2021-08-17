@@ -19,7 +19,28 @@
  *                                                                            *
  ******************************************************************************/
 
-package io.nekohasekai.sagernet.bg
+/******************************************************************************
+ *                                                                            *
+ * Copyright (C) 2021 by nekohasekai <sekai@neko.services>                    *
+ * Copyright (C) 2021 by Max Lv <max.c.lv@gmail.com>                          *
+ * Copyright (C) 2021 by Mygod Studio <contact-shadowsocks-android@mygod.be>  *
+ *                                                                            *
+ * This program is free software: you can redistribute it and/or modify       *
+ * it under the terms of the GNU General Public License as published by       *
+ * the Free Software Foundation, either version 3 of the License, or          *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ * This program is distributed in the hope that it will be useful,            *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
+ * GNU General Public License for more details.                               *
+ *                                                                            *
+ * You should have received a copy of the GNU General Public License          *
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
+ *                                                                            *
+ ******************************************************************************/
+
+package io.nekohasekai.sagernet.bg.proto
 
 import android.os.Build
 import android.os.SystemClock
@@ -27,10 +48,12 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import io.nekohasekai.sagernet.IPv6Mode
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.TrojanProvider
-import io.nekohasekai.sagernet.bg.socks.Socks4To5Instance
+import io.nekohasekai.sagernet.bg.AbstractInstance
+import io.nekohasekai.sagernet.bg.Executable
+import io.nekohasekai.sagernet.bg.ExternalInstance
+import io.nekohasekai.sagernet.bg.GuardedProcessPool
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.fmt.LOCALHOST
@@ -49,7 +72,7 @@ import io.nekohasekai.sagernet.fmt.relaybaton.buildRelayBatonConfig
 import io.nekohasekai.sagernet.fmt.shadowsocks.ShadowsocksBean
 import io.nekohasekai.sagernet.fmt.shadowsocks.buildShadowsocksConfig
 import io.nekohasekai.sagernet.fmt.shadowsocksr.ShadowsocksRBean
-import io.nekohasekai.sagernet.fmt.shadowsocksr.buildShadowsocksRConfig
+import io.nekohasekai.sagernet.fmt.snell.SnellBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trojan.buildTrojanConfig
@@ -66,9 +89,8 @@ import io.netty.resolver.dns.PackagePrivateBridge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import libv2ray.Libv2ray
-import libv2ray.V2RayPoint
-import libv2ray.V2RayVPNServiceSupportsSet
+import libcore.Libcore
+import libcore.V2RayInstance
 import java.io.File
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicBoolean
@@ -79,7 +101,7 @@ abstract class V2RayInstance(
 
     abstract val eventLoopGroup: EventLoopGroup
     lateinit var config: V2rayBuildResult
-    lateinit var v2rayPoint: V2RayPoint
+    lateinit var v2rayPoint: V2RayInstance
     private lateinit var wsForwarder: WebView
 
     val pluginPath = hashMapOf<String, PluginManager.InitResult>()
@@ -97,7 +119,7 @@ abstract class V2RayInstance(
     }
 
     protected open fun initInstance() {
-        v2rayPoint = Libv2ray.newV2RayPoint(NoSupportSet(), false)
+        v2rayPoint = V2RayInstance()
     }
 
     protected open fun buildConfig() {
@@ -107,7 +129,6 @@ abstract class V2RayInstance(
     open fun init() {
         initInstance()
         buildConfig()
-        v2rayPoint.domainName = "$LOCALHOST:11451"
         for ((isBalancer, chain) in config.index) {
             chain.entries.forEachIndexed { index, (port, profile) ->
                 val needChain = !isBalancer && index != chain.size - 1
@@ -115,12 +136,15 @@ abstract class V2RayInstance(
                 val bean = profile.requireBean()
 
                 when {
+                    profile.useClashShadowsocks() -> {
+                        externalInstances[port] = ShadowsocksInstance(bean as ShadowsocksBean, port)
+                    }
                     profile.useExternalShadowsocks() -> {
                         bean as ShadowsocksBean
                         pluginConfigs[port] = profile.type to bean.buildShadowsocksConfig(port)
                     }
                     bean is ShadowsocksRBean -> {
-                        pluginConfigs[port] = profile.type to bean.buildShadowsocksRConfig()
+                        externalInstances[port] = ShadowsocksRInstance(bean, port)
                     }
                     bean is TrojanBean -> {
                         when (DataStore.providerTrojan) {
@@ -169,7 +193,7 @@ abstract class V2RayInstance(
                             }
                             else -> {
                                 externalInstances[port] = ExternalInstance(
-                                    v2rayPoint.supportSet, profile, port, eventLoopGroup
+                                    profile, port, eventLoopGroup
                                 ).apply {
                                     init()
                                 }
@@ -181,11 +205,14 @@ abstract class V2RayInstance(
                             eventLoopGroup, bean, port, dnsResolverIPv4Only
                         )
                     }
+                    bean is SnellBean -> {
+                        externalInstances[port] = SnellInstance(bean, port)
+                    }
                 }
             }
         }
 
-        v2rayPoint.configureFileContent = config.config
+        v2rayPoint.loadConfig(config.config)
     }
 
     private val dnsResolverIPv4Only by lazy {
@@ -210,6 +237,9 @@ abstract class V2RayInstance(
                 val config = pluginConfigs[port]?.second ?: ""
 
                 when {
+                    externalInstances.containsKey(port) -> {
+                        externalInstances[port]!!.launch()
+                    }
                     profile.useExternalShadowsocks() -> {
                         val configFile = File(
                             context.noBackupFilesDir,
@@ -229,32 +259,6 @@ abstract class V2RayInstance(
                         if (DataStore.enableLog) commands.add("-v")
 
                         processes.start(commands)
-                    }
-                    bean is ShadowsocksRBean -> {
-                        val configFile = File(
-                            context.noBackupFilesDir,
-                            "shadowsocksr_" + SystemClock.elapsedRealtime() + ".json"
-                        )
-
-                        configFile.parentFile?.mkdirs()
-                        configFile.writeText(config)
-                        cacheFiles.add(configFile)
-
-                        processes.start(
-                            listOf(
-                                File(
-                                    SagerNet.application.applicationInfo.nativeLibraryDir,
-                                    Executable.SSR_LOCAL
-                                ).absolutePath,
-                                "-b",
-                                LOCALHOST,
-                                "-c",
-                                configFile.absolutePath,
-                                "-l",
-                                "$port",
-                                "-u"
-                            )
-                        )
                     }
                     bean is TrojanBean -> {
                         val configFile = File(
@@ -409,9 +413,6 @@ abstract class V2RayInstance(
 
                         processes.start(commands)
                     }
-                    bean is ConfigBean || bean is SOCKSBean -> {
-                        externalInstances[port]!!.launch()
-                    }
                 }
             }
         }
@@ -420,12 +421,12 @@ abstract class V2RayInstance(
         if (config.requireWs) {
             val wsPort = mkPort()
             wsUrl = "http://$LOCALHOST:$wsPort/"
-            Libv2ray.setenv("XRAY_BROWSER_DIALER", "$LOCALHOST:$wsPort")
+            Libcore.setenv("XRAY_BROWSER_DIALER", "$LOCALHOST:$wsPort")
         } else {
-            Libv2ray.unsetenv("XRAY_BROWSER_DIALER")
+            Libcore.unsetenv("XRAY_BROWSER_DIALER")
         }
 
-        v2rayPoint.runLoop(DataStore.ipv6Mode >= IPv6Mode.PREFER)
+        v2rayPoint.start()
 
         if (config.requireWs) {
 
@@ -478,31 +479,12 @@ abstract class V2RayInstance(
         }
 
         if (::v2rayPoint.isInitialized) {
-            v2rayPoint.stopLoop()
+            v2rayPoint.close()
         }
 
         for (instance in externalInstances.values) {
             instance.destroy(scope)
         }
     }
-
-    private class NoSupportSet : V2RayVPNServiceSupportsSet {
-        override fun onEmitStatus(status: String) {
-            Logs.i("onEmitStatus $status")
-        }
-
-        override fun protect(fd: Long) = true
-    }
-
-    class SagerSupportSet(val service: VpnService) : V2RayVPNServiceSupportsSet {
-        override fun onEmitStatus(status: String) {
-            Logs.i("onEmitStatus $status")
-        }
-
-        override fun protect(fd: Long): Boolean {
-            return service.protect(fd.toInt())
-        }
-    }
-
 
 }

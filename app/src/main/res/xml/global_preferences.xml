@@ -90,6 +90,14 @@
             app:title="@string/vpn_mode"
             app:useSimpleSummaryProvider="true" />
         <com.takisoft.preferencex.SimpleMenuPreference
+            app:defaultValue="2"
+            app:entries="@array/tun2socks"
+            app:entryValues="@array/int_array_3"
+            app:icon="@drawable/ic_baseline_transform_24"
+            app:key="tunImplementation"
+            app:title="@string/tun_implementation"
+            app:useSimpleSummaryProvider="true" />
+        <com.takisoft.preferencex.SimpleMenuPreference
             app:defaultValue="0"
             app:entries="@array/icmp_echo_strategy"
             app:entryValues="@array/int_array_3"
@@ -170,10 +178,17 @@
         <com.takisoft.preferencex.SimpleMenuPreference
             app:defaultValue="0"
             app:entries="@array/ss_aead_provider"
-            app:entryValues="@array/int_array_2"
+            app:entryValues="@array/int_array_3"
             app:icon="@drawable/ic_baseline_nfc_24"
             app:key="providerShadowsocksAEAD"
             app:title="@string/ss_aead_provider"
+            app:useSimpleSummaryProvider="true" />
+        <com.takisoft.preferencex.SimpleMenuPreference
+            app:defaultValue="0"
+            app:entries="@array/ss_stream_provider"
+            app:entryValues="@array/int_array_2"
+            app:key="providerShadowsocksStream"
+            app:title="@string/ss_stream_provider"
             app:useSimpleSummaryProvider="true" />
         <com.takisoft.preferencex.SimpleMenuPreference
             app:defaultValue="0"
@@ -260,19 +275,19 @@
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/cag_misc">
-        <io.nekohasekai.sagernet.widget.LinkPreference
-            app:defaultValue="https://api.v2fly.org/checkConnection.svgz"
-            app:icon="@drawable/ic_baseline_cast_connected_24"
-            app:key="connectionTestURL"
-            app:title="@string/connection_test_url"
-            app:useSimpleSummaryProvider="true" />
         <com.takisoft.preferencex.SimpleMenuPreference
             app:defaultValue=""
             app:entries="@array/utls_entry"
             app:entryValues="@array/utls_value"
             app:icon="@drawable/ic_baseline_fingerprint_24"
-            app:key="xrayFingerprint"
-            app:title="@string/xray_utls_fingerprint"
+            app:key="utlsFingerprint"
+            app:title="@string/utls_fingerprint"
+            app:useSimpleSummaryProvider="true" />
+        <io.nekohasekai.sagernet.widget.LinkPreference
+            app:defaultValue="https://api.v2fly.org/checkConnection.svgz"
+            app:icon="@drawable/ic_baseline_cast_connected_24"
+            app:key="connectionTestURL"
+            app:title="@string/connection_test_url"
             app:useSimpleSummaryProvider="true" />
         <SwitchPreference
             app:defaultValue="false"

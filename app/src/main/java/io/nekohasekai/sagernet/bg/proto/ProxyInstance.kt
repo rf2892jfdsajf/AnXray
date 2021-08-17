@@ -19,7 +19,28 @@
  *                                                                            *
  ******************************************************************************/
 
-package io.nekohasekai.sagernet.bg
+/******************************************************************************
+ *                                                                            *
+ * Copyright (C) 2021 by nekohasekai <sekai@neko.services>                    *
+ * Copyright (C) 2021 by Max Lv <max.c.lv@gmail.com>                          *
+ * Copyright (C) 2021 by Mygod Studio <contact-shadowsocks-android@mygod.be>  *
+ *                                                                            *
+ * This program is free software: you can redistribute it and/or modify       *
+ * it under the terms of the GNU General Public License as published by       *
+ * the Free Software Foundation, either version 3 of the License, or          *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ * This program is distributed in the hope that it will be useful,            *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
+ * GNU General Public License for more details.                               *
+ *                                                                            *
+ * You should have received a copy of the GNU General Public License          *
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
+ *                                                                            *
+ ******************************************************************************/
+
+package io.nekohasekai.sagernet.bg.proto
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -35,15 +56,15 @@ import com.xray.app.stats.command.StatsServiceGrpcKt
 import io.grpc.ManagedChannel
 import io.grpc.StatusException
 import io.nekohasekai.sagernet.SagerNet
+import io.nekohasekai.sagernet.bg.BaseService
+import io.nekohasekai.sagernet.bg.VpnService
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.utils.DirectBoot
 import kotlinx.coroutines.*
-import libv2ray.Libv2ray
-import org.tukaani.xz.XZInputStream
-import java.io.File
+import libcore.Libcore
 import java.io.IOException
 
 
@@ -57,51 +78,12 @@ class ProxyInstance(profile: ProxyEntity, val service: BaseService.Interface) : 
 
     override fun initInstance() {
         if (service is VpnService) {
-            v2rayPoint = Libv2ray.newV2RayPoint(SagerSupportSet(service), false)
-        } else {
-            super.initInstance()
+            Libcore.setProtector { service.protect(it.toInt()) }
         }
-    }
-
-    companion object {
-        private var assetsChecked = false
+        super.initInstance()
     }
 
     override fun init() {
-        if (!assetsChecked) {
-            val geoip = File(app.externalAssets, "geoip.dat")
-            val geoipVersion = File(app.externalAssets, "geoip.version.txt")
-            val geoipVersionInternal = app.assets.open("v2ray/geoip.version.txt")
-                .use { it.bufferedReader().readText() }
-            if (!geoip.isFile || DataStore.rulesProvider == 0 && geoipVersion.isFile && geoipVersionInternal.toLong() > geoipVersion.readText()
-                    .toLongOrNull() ?: -1L
-            ) {
-                XZInputStream(app.assets.open("v2ray/geoip.dat.xz")).use { input ->
-                    geoip.outputStream().use {
-                        input.copyTo(it)
-                    }
-                }
-                geoipVersion.writeText(geoipVersionInternal)
-            }
-
-            val geosite = File(app.externalAssets, "geosite.dat")
-            val geositeVersion = File(app.externalAssets, "geosite.version.txt")
-            val geositeVersionInternal = app.assets.open("v2ray/geosite.version.txt")
-                .use { it.bufferedReader().readText() }
-            if (!geosite.isFile || DataStore.rulesProvider == 0 && geositeVersion.isFile && geositeVersionInternal.toLong() > geositeVersion.readText()
-                    .toLongOrNull() ?: -1L
-            ) {
-                XZInputStream(app.assets.open("v2ray/geosite.dat.xz")).use { input ->
-                    geosite.outputStream().use {
-                        input.copyTo(it)
-                    }
-                }
-                geositeVersion.writeText(geositeVersionInternal)
-            }
-
-            assetsChecked = true
-        }
-
         super.init()
 
         Logs.d(config.config)
