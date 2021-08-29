@@ -27,12 +27,12 @@ jobs:
         with:
           path: |
             app/libs/libcore.aar
-          key: ${{ hashFiles('bin/lib/core/*', 'libcore_status') }}
+          key: ${{ hashFiles('.github/workflows/*', 'bin/lib/core/*', 'libcore_status') }}
       - name: Install Golang
         uses: actions/setup-go@v2
         if: steps.cache.outputs.cache-hit != 'true'
         with:
-          go-version: 1.17
+          go-version: 1.16
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: ./run lib core
@@ -85,7 +85,7 @@ jobs:
         with:
           path: |
             app/libs/libcore.aar
-          key: ${{ hashFiles('bin/lib/core/*', 'libcore_status') }}
+          key: ${{ hashFiles('.github/workflows/*', 'bin/lib/core/*', 'libcore_status') }}
       - name: Shadowsocks Cache
         uses: actions/cache@v2
         with:
