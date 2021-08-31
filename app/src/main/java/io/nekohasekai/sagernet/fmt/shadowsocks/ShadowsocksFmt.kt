@@ -42,7 +42,7 @@ val methodsXray = arrayOf(
 )
 
 val methodsClash = arrayOf(
-    "dummy",
+    "none",
     "aes-128-gcm",
     "aes-192-gcm",
     "aes-256-gcm",
