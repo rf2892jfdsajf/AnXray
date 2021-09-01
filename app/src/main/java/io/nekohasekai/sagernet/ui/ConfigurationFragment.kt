@@ -309,6 +309,9 @@ class ConfigurationFragment @JvmOverloads constructor(
             R.id.action_new_snell -> {
                 startActivity(Intent(requireActivity(), SnellSettingsActivity::class.java))
             }
+            R.id.action_new_ssh -> {
+                startActivity(Intent(requireActivity(), SSHSettingsActivity::class.java))
+            }
             R.id.action_new_config -> {
                 startActivity(Intent(requireActivity(), ConfigSettingsActivity::class.java))
             }
@@ -1350,7 +1353,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     )
                 }
 
-                shareLayout.isGone = select
+                shareLayout.isGone = proxyEntity.type == ProxyEntity.TYPE_CHAIN
                 editButton.isGone = select
 
                 runOnDefaultDispatcher {
@@ -1371,7 +1374,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                         }
 
                         when {
-                            proxyEntity.configBean != null || proxyEntity.hysteriaBean != null -> {
+                            !proxyEntity.haveStandardLink() -> {
                                 popup.menu.findItem(R.id.action_group_qr).subMenu.removeItem(R.id.action_standard_qr)
                                 popup.menu.findItem(R.id.action_group_clipboard).subMenu.removeItem(
                                     R.id.action_standard_clipboard
@@ -1391,7 +1394,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                         popup.show()
                     }
 
-                    if (!(select || proxyEntity.type == 8)) {
+                    if (!(select || proxyEntity.type == ProxyEntity.TYPE_CHAIN)) {
 
                         val validateResult = if (pf.securityAdvisory) {
                             proxyEntity.requireBean().isInsecure()
@@ -1450,6 +1453,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                                 shareLayer.setBackgroundColor(Color.TRANSPARENT)
                                 shareButton.setImageResource(R.drawable.ic_social_share)
                                 shareButton.setColorFilter(Color.GRAY)
+                                shareButton.isVisible = true
 
                                 shareLayout.setOnClickListener {
                                     showShare(it)

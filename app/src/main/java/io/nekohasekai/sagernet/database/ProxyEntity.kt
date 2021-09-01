@@ -60,6 +60,7 @@ import io.nekohasekai.sagernet.fmt.shadowsocksr.toUri
 import io.nekohasekai.sagernet.fmt.snell.SnellBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.socks.toUri
+import io.nekohasekai.sagernet.fmt.ssh.SSHBean
 import io.nekohasekai.sagernet.fmt.toUniversalLink
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trojan.toUri
@@ -103,6 +104,7 @@ data class ProxyEntity(
     var brookBean: BrookBean? = null,
     var hysteriaBean: HysteriaBean? = null,
     var snellBean: SnellBean? = null,
+    var sshBean: SSHBean? = null,
     var configBean: ConfigBean? = null,
     var chainBean: ChainBean? = null,
     var balancerBean: BalancerBean? = null
@@ -123,6 +125,7 @@ data class ProxyEntity(
         const val TYPE_BROOK = 12
         const val TYPE_HYSTERIA = 15
         const val TYPE_SNELL = 16
+        const val TYPE_SSH = 17
 
         const val TYPE_CHAIN = 8
         const val TYPE_BALANCER = 14
@@ -184,6 +187,7 @@ data class ProxyEntity(
             TYPE_BROOK -> brookBean = KryoConverters.brookDeserialize(byteArray)
             TYPE_HYSTERIA -> hysteriaBean = KryoConverters.hysteriaDeserialize(byteArray)
             TYPE_SNELL -> snellBean = KryoConverters.snellDeserialize(byteArray)
+            TYPE_SSH -> sshBean = KryoConverters.sshDeserialize(byteArray)
             TYPE_CONFIG -> configBean = KryoConverters.configDeserialize(byteArray)
             TYPE_CHAIN -> chainBean = KryoConverters.chainDeserialize(byteArray)
             TYPE_BALANCER -> balancerBean = KryoConverters.balancerBeanDeserialize(byteArray)
@@ -218,6 +222,7 @@ data class ProxyEntity(
         TYPE_BROOK -> "Brook"
         TYPE_HYSTERIA -> "Hysteria"
         TYPE_SNELL -> "Snell"
+        TYPE_SSH -> "SSH"
         TYPE_CHAIN -> chainName
         TYPE_CONFIG -> configName
         TYPE_BALANCER -> balancerName
@@ -243,6 +248,7 @@ data class ProxyEntity(
             TYPE_BROOK -> brookBean
             TYPE_HYSTERIA -> hysteriaBean
             TYPE_SNELL -> snellBean
+            TYPE_SSH -> sshBean
 
             TYPE_CONFIG -> configBean
             TYPE_CHAIN -> chainBean
@@ -256,6 +262,18 @@ data class ProxyEntity(
             TYPE_CHAIN -> false
             TYPE_CONFIG -> false
             TYPE_BALANCER -> false
+            else -> true
+        }
+    }
+
+    fun haveStandardLink(): Boolean {
+        return when (requireBean()) {
+            is RelayBatonBean -> false
+            is BrookBean -> false
+            is ConfigBean -> false
+            is HysteriaBean -> false
+            is SnellBean -> false
+            is SSHBean -> false
             else -> true
         }
     }
@@ -277,6 +295,7 @@ data class ProxyEntity(
             is ConfigBean -> toUniversalLink()
             is HysteriaBean -> toUniversalLink()
             is SnellBean -> toUniversalLink()
+            is SSHBean -> toUniversalLink()
             else -> null
         }
     }
@@ -356,6 +375,7 @@ data class ProxyEntity(
             TYPE_SS -> pickShadowsocksProvider() == ShadowsocksProvider.CLASH
             TYPE_SSR -> true
             TYPE_SNELL -> true
+            TYPE_SSH -> true
             else -> false
         }
     }
@@ -385,10 +405,14 @@ data class ProxyEntity(
                 prefer == ShadowsocksProvider.V2RAY && bean.method in methodsXray && bean.plugin.isBlank() -> {
                     return ShadowsocksProvider.V2RAY
                 }
-                prefer == ShadowsocksProvider.CLASH && bean.method in methodsClash && ssPluginSupportedByClash(true) -> {
+                prefer == ShadowsocksProvider.CLASH && bean.method in methodsClash && ssPluginSupportedByClash(
+                    true
+                ) -> {
                     return ShadowsocksProvider.CLASH
                 }
-                prefer == ShadowsocksProvider.SHADOWSOCKS_RUST && bean.method in methodsSsRust && !ssPluginSupportedByClash(false) -> {
+                prefer == ShadowsocksProvider.SHADOWSOCKS_RUST && bean.method in methodsSsRust && !ssPluginSupportedByClash(
+                    false
+                ) -> {
                     return ShadowsocksProvider.SHADOWSOCKS_RUST
                 }
             }
@@ -402,10 +426,14 @@ data class ProxyEntity(
         } else {
             val prefer = DataStore.providerShadowsocksStream
             when {
-                prefer == ShadowsocksStreamProvider.CLASH && bean.method in methodsClash && ssPluginSupportedByClash(true) -> {
+                prefer == ShadowsocksStreamProvider.CLASH && bean.method in methodsClash && ssPluginSupportedByClash(
+                    true
+                ) -> {
                     return ShadowsocksProvider.CLASH
                 }
-                prefer == ShadowsocksStreamProvider.SHADOWSOCKS_RUST && bean.method in methodsSsRust && !ssPluginSupportedByClash(false) -> {
+                prefer == ShadowsocksStreamProvider.SHADOWSOCKS_RUST && bean.method in methodsSsRust && !ssPluginSupportedByClash(
+                    false
+                ) -> {
                     return ShadowsocksProvider.SHADOWSOCKS_RUST
                 }
             }
@@ -455,6 +483,8 @@ data class ProxyEntity(
         rbBean = null
         brookBean = null
         hysteriaBean = null
+        snellBean = null
+        sshBean = null
 
         configBean = null
         chainBean = null
@@ -517,6 +547,10 @@ data class ProxyEntity(
                 type = TYPE_SNELL
                 snellBean = bean
             }
+            is SSHBean -> {
+                type = TYPE_SSH
+                sshBean = bean
+            }
             is ConfigBean -> {
                 type = TYPE_CONFIG
                 configBean = bean
@@ -551,6 +585,7 @@ data class ProxyEntity(
                 TYPE_BROOK -> BrookSettingsActivity::class.java
                 TYPE_HYSTERIA -> HysteriaSettingsActivity::class.java
                 TYPE_SNELL -> SnellSettingsActivity::class.java
+                TYPE_SSH -> SSHSettingsActivity::class.java
 
                 TYPE_CONFIG -> ConfigSettingsActivity::class.java
                 TYPE_CHAIN -> ChainSettingsActivity::class.java
