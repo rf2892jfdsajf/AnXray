@@ -147,6 +147,7 @@ object Key {
     const val SERVER_VMESS_EXPERIMENTAL_NO_TERMINATION_SIGNAL = "serverVMessExperimentalNoTerminationSignal"
 
     const val SERVER_PRIVATE_KEY = "serverPrivateKey"
+    const val SERVER_LOCAL_ADDRESS = "serverLocalAddress"
 
     const val BALANCER_TYPE = "balancerType"
     const val BALANCER_GROUP = "balancerGroup"
@@ -197,11 +198,13 @@ object ShadowsocksProvider {
     const val V2RAY = 0
     const val SHADOWSOCKS_RUST = 1
     const val CLASH = 2
+    const val SHADOWSOCKS_LIBEV = 3
 }
 
 object ShadowsocksStreamProvider {
     const val SHADOWSOCKS_RUST = 0
     const val CLASH = 1
+    const val SHADOWSOCKS_LIBEV = 2
 }
 
 object IPv6Mode {

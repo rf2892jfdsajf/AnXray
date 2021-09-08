@@ -1,6 +1,5 @@
 /******************************************************************************
- *                                                                            *
- * Copyright (C) 2021 by nekohasekai <contact-sagernet@sekai.icu>             *
+ * Copyright (C) 2021 by nekohasekai <contact-git@sekai.icu>                  *
  *                                                                            *
  * This program is free software: you can redistribute it and/or modify       *
  * it under the terms of the GNU General Public License as published by       *
@@ -17,24 +16,15 @@
  *                                                                            *
  ******************************************************************************/
 
-package io.nekohasekai.sagernet.bg.proto
+package io.nekohasekai.sagernet.ui
 
-import io.nekohasekai.sagernet.bg.ClashBasedInstance
-import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
-import libcore.Libcore
+import androidx.fragment.app.Fragment
 
-class Socks4To5Instance(val server: SOCKSBean, val port: Int) : ClashBasedInstance() {
+abstract class NamedFragment : Fragment {
 
-    override fun createInstance() {
+    constructor() : super()
+    constructor(contentLayoutId: Int) : super(contentLayoutId)
 
-        instance = Libcore.newSocks4To5Instance(
-            port,
-            server.finalAddress,
-            server.finalPort,
-            server.username,
-            server.protocol == SOCKSBean.PROTOCOL_SOCKS4A
-        )
-
-    }
+    abstract fun name(): String
 
 }

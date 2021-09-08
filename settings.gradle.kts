@@ -1,5 +1,7 @@
 include(":library:include")
 include(":library:shadowsocks")
+include(":library:shadowsocks-libev")
+
 include(":library:proto")
 include(":library:proto-stub")
 
@@ -14,9 +16,16 @@ include(":external:preferencex:preferencex-colorpicker")
 includeBuild("external/editorkit") {
     name = "editorkit"
     dependencySubstitution {
-        substitute(module("editorkit:editorkit:2.0.0")).with(project(":editorkit"))
-        substitute(module("editorkit:feature-editor:2.0.0")).with(project(":features:feature-editor"))
-        substitute(module("editorkit:language-json:2.0.0")).with(project(":languages:language-json"))
+        substitute(module("editorkit:editorkit:2.0.0")).using(project(":editorkit"))
+        substitute(module("editorkit:feature-editor:2.0.0")).using(project(":features:feature-editor"))
+        substitute(module("editorkit:language-json:2.0.0")).using(project(":languages:language-json"))
+    }
+}
+
+includeBuild("external/termux-view") {
+    name = "termux-view"
+    dependencySubstitution {
+        substitute(module("termux:terminal-view:1.0")).using(project(":terminal-view"))
     }
 }
 

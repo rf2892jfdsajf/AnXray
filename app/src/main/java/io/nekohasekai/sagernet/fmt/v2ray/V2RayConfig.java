@@ -517,6 +517,7 @@ public class V2RayConfig {
             public String address;
             public Integer port;
             public List<UserObject> users;
+            public String version;
 
             public static class UserObject {
 
@@ -818,6 +819,7 @@ public class V2RayConfig {
         public Set<String> subjectSelector;
         public String probeUrl;
         public String probeInterval;
+        public Boolean enableConcurrency;
     }
 
     public void init() {

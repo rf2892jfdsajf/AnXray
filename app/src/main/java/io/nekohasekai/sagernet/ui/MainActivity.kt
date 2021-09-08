@@ -326,13 +326,15 @@ class MainActivity : ThemedActivity(),
                 displayFragment(ConfigurationFragment())
                 connection.bandwidthTimeout = connection.bandwidthTimeout
             }
+            R.id.nav_group -> displayFragment(GroupFragment())
+            R.id.nav_route -> displayFragment(RouteFragment())
+            R.id.nav_settings -> displayFragment(SettingsFragment())
             R.id.nav_traffic -> {
                 displayFragment(TrafficFragment())
                 connection.trafficTimeout = connection.trafficTimeout
             }
-            R.id.nav_group -> displayFragment(GroupFragment())
-            R.id.nav_route -> displayFragment(RouteFragment())
-            R.id.nav_settings -> displayFragment(SettingsFragment())
+            R.id.nav_tools -> displayFragment(ToolsFragment())
+            R.id.nav_logcat -> displayFragment(LogcatFragment())
             R.id.nav_faq -> {
                 launchCustomTab("https://anxray.org/")
                 return false
@@ -457,6 +459,12 @@ class MainActivity : ThemedActivity(),
     override fun profilePersisted(profileId: Long) {
         runOnDefaultDispatcher {
             ProfileManager.postUpdate(profileId)
+        }
+    }
+
+    override fun observatoryResultsUpdated(groupId: Long) {
+        runOnDefaultDispatcher {
+            GroupManager.postReload(groupId)
         }
     }
 

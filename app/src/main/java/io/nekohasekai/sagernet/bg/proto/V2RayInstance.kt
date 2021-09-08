@@ -28,10 +28,7 @@ import android.webkit.WebViewClient
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.ShadowsocksProvider
 import io.nekohasekai.sagernet.TrojanProvider
-import io.nekohasekai.sagernet.bg.AbstractInstance
-import io.nekohasekai.sagernet.bg.Executable
-import io.nekohasekai.sagernet.bg.ExternalInstance
-import io.nekohasekai.sagernet.bg.GuardedProcessPool
+import io.nekohasekai.sagernet.bg.*
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.fmt.LOCALHOST
@@ -59,6 +56,8 @@ import io.nekohasekai.sagernet.fmt.trojan.buildTrojanGoConfig
 import io.nekohasekai.sagernet.fmt.trojan_go.TrojanGoBean
 import io.nekohasekai.sagernet.fmt.trojan_go.buildCustomTrojanConfig
 import io.nekohasekai.sagernet.fmt.trojan_go.buildTrojanGoConfig
+import io.nekohasekai.sagernet.fmt.wireguard.WireGuardBean
+import io.nekohasekai.sagernet.fmt.wireguard.buildWireGuardUapiConf
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.plugin.PluginManager
 import kotlinx.coroutines.CoroutineScope
@@ -106,23 +105,22 @@ abstract class V2RayInstance(
             chain.entries.forEachIndexed { index, (port, profile) ->
                 val needChain = !isBalancer && index != chain.size - 1
                 val mux = DataStore.enableMux && (isBalancer || chain.size == 0)
-                val bean = profile.requireBean()
 
-                when {
-                    bean is ShadowsocksBean -> when (profile.pickShadowsocksProvider()) {
+                when (val bean = profile.requireBean()) {
+                    is ShadowsocksBean -> when (val provider = profile.pickShadowsocksProvider()) {
                         ShadowsocksProvider.CLASH -> {
                             externalInstances[port] = ShadowsocksInstance(bean, port)
                         }
                         else -> {
-                            pluginConfigs[port] = profile.type to bean.buildShadowsocksConfig(
+                            pluginConfigs[port] = provider to bean.buildShadowsocksConfig(
                                 port
                             )
                         }
                     }
-                    bean is ShadowsocksRBean -> {
+                    is ShadowsocksRBean -> {
                         externalInstances[port] = ShadowsocksRInstance(bean, port)
                     }
-                    bean is TrojanBean -> {
+                    is TrojanBean -> {
                         when (DataStore.providerTrojan) {
                             TrojanProvider.TROJAN -> {
                                 initPlugin("trojan-plugin")
@@ -138,28 +136,28 @@ abstract class V2RayInstance(
                             }
                         }
                     }
-                    bean is TrojanGoBean -> {
+                    is TrojanGoBean -> {
                         initPlugin("trojan-go-plugin")
                         pluginConfigs[port] = profile.type to bean.buildTrojanGoConfig(
                             port, mux
                         )
                     }
-                    bean is NaiveBean -> {
+                    is NaiveBean -> {
                         initPlugin("naive-plugin")
                         pluginConfigs[port] = profile.type to bean.buildNaiveConfig(port)
                     }
-                    bean is PingTunnelBean -> {
+                    is PingTunnelBean -> {
                         if (needChain) error("PingTunnel is incompatible with chain")
                         initPlugin("pingtunnel-plugin")
                     }
-                    bean is RelayBatonBean -> {
+                    is RelayBatonBean -> {
                         initPlugin("relaybaton-plugin")
                         pluginConfigs[port] = profile.type to bean.buildRelayBatonConfig(port)
                     }
-                    bean is BrookBean -> {
+                    is BrookBean -> {
                         initPlugin("brook-plugin")
                     }
-                    bean is HysteriaBean -> {
+                    is HysteriaBean -> {
                         initPlugin("hysteria-plugin")
                         pluginConfigs[port] = profile.type to bean.buildHysteriaConfig(port) {
                             File(
@@ -171,7 +169,11 @@ abstract class V2RayInstance(
                             }
                         }
                     }
-                    bean is ConfigBean -> {
+                    is WireGuardBean -> {
+                        initPlugin("wireguard-plugin")
+                        pluginConfigs[port] = profile.type to bean.buildWireGuardUapiConf()
+                    }
+                    is ConfigBean -> {
                         when (bean.type) {
                             "trojan-go" -> {
                                 initPlugin("trojan-go-plugin")
@@ -188,13 +190,10 @@ abstract class V2RayInstance(
                             }
                         }
                     }
-                    bean is SOCKSBean -> {
-                        externalInstances[port] = Socks4To5Instance(bean, port)
-                    }
-                    bean is SnellBean -> {
+                    is SnellBean -> {
                         externalInstances[port] = SnellInstance(bean, port)
                     }
-                    bean is SSHBean -> {
+                    is SSHBean -> {
                         externalInstances[port] = SSHInstance(bean, port)
                     }
                 }
@@ -210,7 +209,7 @@ abstract class V2RayInstance(
             chain.entries.forEachIndexed { index, (port, profile) ->
                 val bean = profile.requireBean()
                 val needChain = !isBalancer && index != chain.size - 1
-                val config = pluginConfigs[port]?.second ?: ""
+                val (profileType, config) = pluginConfigs[port] ?: 0 to ""
 
                 when {
                     externalInstances.containsKey(port) -> {
@@ -228,9 +227,18 @@ abstract class V2RayInstance(
                         val commands = mutableListOf(
                             File(
                                 SagerNet.application.applicationInfo.nativeLibraryDir,
-                                Executable.SS_LOCAL
-                            ).absolutePath, "-c", configFile.absolutePath, "--log-without-time"
+                                when (profileType) {
+                                    ShadowsocksProvider.SHADOWSOCKS_RUST -> Executable.SS_LOCAL
+                                    else -> Executable.SS_LIBEV_LOCAL
+                                }
+                            ).absolutePath, "-c", configFile.absolutePath
                         )
+
+                        if (profileType == ShadowsocksProvider.SHADOWSOCKS_RUST) {
+                            commands.add("--log-without-time")
+                        } else {
+                            commands.addAll(arrayOf("-u", "-t", "600"))
+                        }
 
                         if (DataStore.enableLog) commands.add("-v")
 
@@ -377,6 +385,30 @@ abstract class V2RayInstance(
                             "--log-level",
                             if (DataStore.enableLog) "trace" else "warn",
                             "client"
+                        )
+
+                        processes.start(commands)
+                    }
+                    bean is WireGuardBean -> {
+                        val configFile = File(
+                            context.noBackupFilesDir,
+                            "wg_" + SystemClock.elapsedRealtime() + ".conf"
+                        )
+
+                        configFile.parentFile?.mkdirs()
+                        configFile.writeText(config)
+                        cacheFiles.add(configFile)
+
+                        val commands = mutableListOf(
+                            initPlugin("wireguard-plugin").path,
+                            "-a",
+                            bean.localAddress.split("\n").joinToString(","),
+                            "-b",
+                            "127.0.0.1:$port",
+                            "-c",
+                            configFile.absolutePath,
+                            "-d",
+                            "127.0.0.1:${DataStore.localDNSPort}"
                         )
 
                         processes.start(commands)

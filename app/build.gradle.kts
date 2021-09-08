@@ -32,7 +32,7 @@ dependencies {
     implementation(fileTree("libs"))
     compileOnly(project(":library:include"))
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
     implementation("androidx.core:core-ktx:1.6.0")
     implementation("androidx.activity:activity-ktx:1.3.1")
     implementation("androidx.fragment:fragment-ktx:1.3.6")
@@ -43,9 +43,8 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:2.3.5")
     implementation("androidx.preference:preference-ktx:1.1.1")
     implementation("androidx.appcompat:appcompat:1.3.1")
-    implementation("androidx.work:work-runtime-ktx:2.7.0-alpha05")
-    implementation("androidx.work:work-multiprocess:2.7.0-alpha05")
-
+    implementation("androidx.work:work-runtime-ktx:2.7.0-beta01")
+    implementation("androidx.work:work-multiprocess:2.7.0-beta01")
 
     implementation(project(":external:preferencex:preferencex"))
     implementation(project(":external:preferencex:preferencex-simplemenu"))
@@ -63,6 +62,12 @@ dependencies {
     implementation("org.yaml:snakeyaml:1.29")
     implementation("com.github.daniel-stoneuk:material-about-library:3.2.0-rc01")
     implementation("com.mikepenz:aboutlibraries:8.9.1")
+    implementation("com.jakewharton:process-phoenix:2.1.2")
+    implementation("com.esotericsoftware:kryo:5.2.0")
+    implementation("org.conscrypt:conscrypt-android:2.5.2")
+    implementation("com.google.guava:guava:30.1.1-android")
+    implementation("com.journeyapps:zxing-android-embedded:4.2.0")
+    implementation("org.ini4j:ini4j:0.5.4")
 
     implementation("com.simplecityapps:recyclerview-fastscroll:2.0.1") {
         exclude(group = "androidx.recyclerview")
@@ -71,29 +76,22 @@ dependencies {
     implementation("org.smali:dexlib2:2.5.2") {
         exclude(group = "com.google.guava", module = "guava")
     }
-    implementation("org.conscrypt:conscrypt-android:2.5.2")
-    implementation("com.google.guava:guava:30.1.1-android")
-    implementation("com.journeyapps:zxing-android-embedded:4.2.0")
 
     implementation("androidx.room:room-runtime:2.3.0")
     kapt("androidx.room:room-compiler:2.3.0")
     implementation("androidx.room:room-ktx:2.3.0")
-
     implementation("com.github.MatrixDev.Roomigrant:RoomigrantLib:0.3.4")
     kapt("com.github.MatrixDev.Roomigrant:RoomigrantCompiler:0.3.4")
 
-    implementation("com.esotericsoftware:kryo:5.2.0")
+
     implementation("editorkit:editorkit:2.0.0")
     implementation("editorkit:feature-editor:2.0.0")
     implementation("editorkit:language-json:2.0.0")
+    implementation("termux:terminal-view:1.0")
+
 
     implementation(project(":library:proto-stub"))
-    implementation("io.grpc:grpc-okhttp:1.40.1")
-
-    implementation("org.slf4j:slf4j-simple:1.7.32")
-    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:2.0")
-    implementation("dnsjava:dnsjava:3.4.1")
-    implementation("com.github.topjohnwu.libsu:io:3.1.2")
+//    implementation("io.grpc:grpc-okhttp:1.40.1")
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
 }
